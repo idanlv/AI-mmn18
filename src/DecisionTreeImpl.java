@@ -43,17 +43,20 @@ public class DecisionTreeImpl extends DecisionTree {
     this.root = this.DecisionTreeLearning(train.instances, this.attributes, new ArrayList<Instance>(), null);
   }
 
+  /**
+   * Classify the inputed instance in the decisions tree   
+   */
   @Override
   public String classify(Instance instance) {
 	  DecTreeNode current = root;
 	  boolean continueSearch = true;
 	  
-	  // Searches tree until reaches a terminal node
+	  // Go through the tree until reaching the a leaf (terminal node)
 	  while (continueSearch) {
 		  int attrIndex = this.getAttributeIndex(current.attribute);
 		  String value = instance.attributes.get(attrIndex);
 		  
-		  // Searches for the value that the current instance has 
+		  // Search for the value of the current instance 
 		  for (DecTreeNode childNode : current.children) {
 			  if (childNode.parentAttributeValue.equals(value)) {
 				  current = childNode;
@@ -68,6 +71,9 @@ public class DecisionTreeImpl extends DecisionTree {
 	  return label;
   }
 
+  /**
+   * Calculates info gain for every attribute in root data set 
+   */
   @Override
   public void rootInfoGain(DataSet train) {
     this.labels = train.labels;
@@ -83,6 +89,9 @@ public class DecisionTreeImpl extends DecisionTree {
 	}	
   }
   
+  /**
+   * Calculates accuracy of test dataset
+   */
   @Override
   public void printAccuracy(DataSet test) {
     int correctNumber = 0;
@@ -186,16 +195,16 @@ public class DecisionTreeImpl extends DecisionTree {
   }
   
   /**
-   * Create a decision tree based on provided dataset 
+   * Create the decision tree based on a provided dataset 
    * @param examples dataset 
-   * @param attributes dataset's attributes
-   * @param parentExamples the dataset that the current dataset was created from
-   * @param parentAttributeValue the attribute that the current dataset was created by
-   * @return
+   * @param attributes the dataset attributes
+   * @param parentExamples original parent dataset
+   * @param parentAttributeValue the attribute value of parent splitter
+   * @return Subtree
    */
   private DecTreeNode DecisionTreeLearning(List<Instance> examples, List<String> attributes, List<Instance> parentExamples, String parentAttributeValue) {
 	DecTreeNode node;
-	// Check if we have no instances left 
+	// Check if we have any more instances in dataset 
 	if (examples.isEmpty()) {
 		node = PluralityLabel(parentExamples, parentAttributeValue);
 	}
@@ -204,17 +213,17 @@ public class DecisionTreeImpl extends DecisionTree {
 		String label = examples.get(0).label;
 		node = new DecTreeNode(label, null, parentAttributeValue, true);
 	}
-	// Check if we have attributes 
+	// Check that there are attributes 
 	else if (attributes.isEmpty()) {
 		node = PluralityLabel(examples, parentAttributeValue);
 	} else {
-		// Calculate dataset entropy 
+		// Calculate entropy for dataset 
 		double entropy = Info(examples);
 		
 		String attribute = null;
 		double maxImportance = 0;
 		
-		// Find the most important attribute 
+		// Find the attribute with max info gain  
 		for (String attr : attributes) {
 			double importance = Importance(entropy, examples, attr);
 			
@@ -232,7 +241,7 @@ public class DecisionTreeImpl extends DecisionTree {
 		List<String> newAttributes = new ArrayList<String>(attributes);
 		newAttributes.remove(attribute);
 
-		// Create decision tree for each sub-dataset
+		// Create decision tree for each sub dataset
 		for (String value : this.attributeValues.get(attribute)) {
 			List<Instance> childExamples = new ArrayList<Instance>();
 			
@@ -254,18 +263,18 @@ public class DecisionTreeImpl extends DecisionTree {
   }
 
   /**
-   * Calculate Information Gain for attribute
+   * Calculate info gain for attribute
    * @param entropy dataset entropy
    * @param examples dataset
    * @param attr attribute
-   * @return
+   * @return info gain value
    */
   private double Importance(double entropy, List<Instance> examples, String attr) {
 	int attrIndex = this.getAttributeIndex(attr);
 	
 	HashMap<String, List<Instance>> valueInstances = new HashMap<String, List<Instance>>();
 	
-	// Create sub-datasets of each attribute value
+	// Create sub datasets of each attribute value
 	for (Instance current : examples) {
 		String value = current.attributes.get(attrIndex);
 		
@@ -293,9 +302,9 @@ public class DecisionTreeImpl extends DecisionTree {
   }
 
   /**
-   * Calculate the Info for a dataset
+   * Calculate the info for a dataset [I(X,Y)) function]
    * @param examples dataset
-   * @return
+   * @return value of I(x,y) function
    */
   private double Info(List<Instance> examples) {
 	  double info = 0;
@@ -318,9 +327,10 @@ public class DecisionTreeImpl extends DecisionTree {
 	  for (String label : labels.keySet()) {
 		  double percentage = ((double) labels.get(label)) / (examples.size());
 			
-			if (percentage > 0) {
-				info += -1 * percentage * (Math.log(percentage) / Math.log(2));
-			}
+		  // prevent log(0) overflow by checking that there are instances
+		  if (percentage > 0) {
+			  info += -1 * percentage * (Math.log(percentage) / Math.log(2));
+		  }
 	  }
 	  
 	  return info;
@@ -329,7 +339,7 @@ public class DecisionTreeImpl extends DecisionTree {
   /**
    * Check if all instances in dataset have the same classification
    * @param examples dataset
-   * @return
+   * @return True if all instances in data set has same classification, False otherwise 
    */
   private boolean IsAllSameLabel(List<Instance> examples) {
 	String label = examples.get(0).label;
@@ -349,7 +359,7 @@ public class DecisionTreeImpl extends DecisionTree {
    * Split dataset by the label with the majority of instances 
    * @param examples dataset
    * @param parentAttributeValue the parent attribute of the dataset
-   * @return
+   * @return Splitted node
    */
   private DecTreeNode PluralityLabel(List<Instance> examples, String parentAttributeValue) {
 	HashMap<String, Integer> labels = new HashMap<String, Integer>();
